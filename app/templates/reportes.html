@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes de Asistencia - Sistema de Asistencia{% endblock %}
+
+{% block content %}
+<div class="reportes-container">
+    <div class="reportes-header">
+        <h1><i class="fas fa-chart-bar"></i> Reportes de Asistencia</h1>
+        <div class="reportes-actions">
+            <button class="btn btn-success" onclick="exportarExcel()">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </button>
+            <button class="btn btn-info" onclick="exportarPDF()">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
+        </div>
+    </div>
+    
+    <div class="filtros-container">
+        <form method="GET" class="filtros-form">
+            <div class="filtro-group">
+                <label for="fecha_inicio">
+                    <i class="fas fa-calendar-alt"></i> Fecha Inicio
+                </label>
+                <input type="date" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio }}">
+            </div>
+            
+            <div class="filtro-group">
+                <label for="fecha_fin">
+                    <i class="fas fa-calendar-alt"></i> Fecha Fin
+                </label>
+                <input type="date" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin }}">
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Filtrar
+            </button>
+        </form>
+    </div>
+    
+    <div class="reportes-content">
+        {% if asistencias %}
+        <div class="tabla-container">
+            <table class="reportes-tabla">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-user"></i> Empleado</th>
+                        <th><i class="fas fa-briefcase"></i> Puesto</th>
+                        <th><i class="fas fa-building"></i> Departamento</th>
+                        <th><i class="fas fa-calendar"></i> Fecha</th>
+                        <th><i class="fas fa-sign-in-alt"></i> Entrada</th>
+                        <th><i class="fas fa-sign-out-alt"></i> Salida</th>
+                        <th><i class="fas fa-clock"></i> Horas</th>
+                        <th><i class="fas fa-sticky-note"></i> Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asistencia in asistencias %}
+                    <tr>
+                        <td class="empleado-cell">
+                            <div class="empleado-info">
+                                <i class="fas fa-user"></i>
+                                <span>{{ asistencia[0] }} {{ asistencia[1] }}</span>
+                            </div>
+                        </td>
+                        <td>{{ asistencia[2] }}</td>
+                        <td>{{ asistencia[3] }}</td>
+                        <td class="fecha-cell">{{ asistencia[4] }}</td>
+                        <td class="hora-cell entrada">
+                            {% if asistencia[5] %}
+                                <i class="fas fa-sign-in-alt"></i> {{ asistencia[5] }}
+                            {% else %}
+                                <span class="no-registro">Sin registro</span>
+                            {% endif %}
+                        </td>
+                        <td class="hora-cell salida">
+                            {% if asistencia[6] %}
+                                <i class="fas fa-sign-out-alt"></i> {{ asistencia[6] }}
+                            {% else %}
+                                <span class="no-registro">Sin registro</span>
+                            {% endif %}
+                        </td>
+                        <td class="horas-cell">
+                            {% if asistencia[5] and asistencia[6] %}
+                                {% set entrada = asistencia[5].split(':') %}
+                                {% set salida = asistencia[6].split(':') %}
+                                {% set horas_entrada = entrada[0]|int * 60 + entrada[1]|int %}
+                                {% set horas_salida = salida[0]|int * 60 + salida[1]|int %}
+                                {% set diferencia = horas_salida - horas_entrada %}
+                                {% if diferencia > 0 %}
+                                    {{ (diferencia // 60) }}h {{ (diferencia % 60) }}m
+                                {% else %}
+                                    <span class="error">Error</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="incompleto">Incompleto</span>
+                            {% endif %}
+                        </td>
+                        <td class="observaciones-cell">
+                            {{ asistencia[7] if asistencia[7] else '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="reportes-resumen">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-pie"></i> Resumen del Período</h3>
+                </div>
+                <div class="card-body">
+                    <div class="resumen-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Registros:</span>
+                            <span class="stat-value">{{ asistencias|length }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Empleados Únicos:</span>
+                            <span class="stat-value">{{ asistencias|map(attribute=0)|unique|list|length }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Período:</span>
+                            <span class="stat-value">{{ fecha_inicio }} a {{ fecha_fin }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-chart-bar"></i>
+            <h3>No hay datos para mostrar</h3>
+            <p>No se encontraron registros de asistencia en el período seleccionado</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function exportarExcel() {
+    // Crear tabla para exportar
+    const tabla = document.querySelector('.reportes-tabla');
+    if (!tabla) {
+        showNotification('No hay datos para exportar', 'warning');
+        return;
+    }
+    
+    // Convertir tabla a CSV
+    let csv = '';
+    const filas = tabla.querySelectorAll('tr');
+    
+    filas.forEach(fila => {
+        const celdas = fila.querySelectorAll('th, td');
+        const filaCsv = Array.from(celdas).map(celda => {
+            return '"' + celda.textContent.trim().replace(/"/g, '""') + '"';
+        }).join(',');
+        csv += filaCsv + '\n';
+    });
+    
+    // Descargar archivo
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `reporte_asistencia_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('Reporte exportado exitosamente', 'success');
+}
+
+function exportarPDF() {
+    showNotification('Función de exportar PDF en desarrollo', 'info');
+}
+
+// Establecer fechas por defecto
+window.addEventListener('load', function() {
+    const fechaInicio = document.getElementById('fecha_inicio');
+    const fechaFin = document.getElementById('fecha_fin');
+    
+    if (!fechaInicio.value) {
+        const hoy = new Date();
+        const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        fechaInicio.value = primerDiaMes.toISOString().split('T')[0];
+    }
+    
+    if (!fechaFin.value) {
+        const hoy = new Date();
+        fechaFin.value = hoy.toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

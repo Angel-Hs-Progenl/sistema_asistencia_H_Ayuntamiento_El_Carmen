@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Registro de Personal - Sistema de Asistencia{% endblock %}
+
+{% block content %}
+<div class="personal-management">
+    <div class="page-header">
+        <h1><i class="fas fa-users"></i> Gestión de Personal</h1>
+        <button class="btn btn-primary" onclick="openModal('nuevo-empleado-modal')">
+            <i class="fas fa-user-plus"></i> Nuevo Empleado
+        </button>
+    </div>
+    
+    <div class="employees-grid">
+        {% for empleado in empleados %}
+        <div class="employee-card {% if not empleado[7] %}inactive{% endif %}">
+            <div class="employee-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="employee-info">
+                <h3>{{ empleado[1] }} {{ empleado[2] }}</h3>
+                <p class="employee-position">{{ empleado[4] }}</p>
+                <p class="employee-department">{{ empleado[5] }}</p>
+                <p class="employee-curp">CURP: {{ empleado[3] }}</p>
+                <p class="employee-date">Registro: {{ empleado[6] }}</p>
+            </div>
+            <div class="employee-actions">
+                <button class="btn btn-sm btn-info" onclick="verQR('{{ empleado[0] }}')">
+                    <i class="fas fa-qrcode"></i> Ver QR
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="editarEmpleado('{{ empleado[0] }}')">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+            </div>
+            {% if not empleado[7] %}
+            <div class="inactive-badge">
+                <i class="fas fa-ban"></i> Inactivo
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Nuevo Empleado -->
+<div id="nuevo-empleado-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-user-plus"></i> Registrar Nuevo Empleado</h2>
+            <button class="close-modal" onclick="closeModal('nuevo-empleado-modal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('nuevo_empleado') }}" class="employee-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nombre">
+                        <i class="fas fa-user"></i> Nombre(s)
+                    </label>
+                    <input type="text" id="nombre" name="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="apellidos">
+                        <i class="fas fa-user"></i> Apellidos
+                    </label>
+                    <input type="text" id="apellidos" name="apellidos" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="curp">
+                    <i class="fas fa-id-card"></i> CURP
+                </label>
+                <input type="text" id="curp" name="curp" maxlength="18" minlength="18" required 
+                       placeholder="Ejemplo: HEAA850101HTLRNN01"
+                       title="Ingresa el CURP de 18 caracteres">
+                <small class="form-help">Formato: 4 letras + 6 números + H/M + 5 letras + 2 números</small>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="puesto">
+                        <i class="fas fa-briefcase"></i> Puesto
+                    </label>
+                    <input type="text" id="puesto" name="puesto" required>
+                </div>
+                <div class="form-group">
+                    <label for="departamento">
+                        <i class="fas fa-building"></i> Departamento
+                    </label>
+                    <select id="departamento" name="departamento" required>
+                        <option value="">Seleccionar departamento</option>
+                        <option value="Presidencia">Presidencia</option>
+                        <option value="Secretaría">Secretaría</option>
+                        <option value="Tesorería">Tesorería</option>
+                        <option value="Obras Públicas">Obras Públicas</option>
+                        <option value="Desarrollo Social">Desarrollo Social</option>
+                        <option value="Seguridad Pública">Seguridad Pública</option>
+                        <option value="Servicios Públicos">Servicios Públicos</option>
+                        <option value="Sistemas">Sistemas</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('nuevo-empleado-modal')">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Registrar Empleado
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Ver QR -->
+<div id="qr-modal" class="modal">
+    <div class="modal-content qr-modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-qrcode"></i> Código QR del Empleado</h2>
+            <button class="close-modal" onclick="closeModal('qr-modal')">&times;</button>
+        </div>
+        <div class="qr-display">
+            <div class="qr-employee-info">
+                <h3 id="qr-employee-name"></h3>
+            </div>
+            <div class="qr-code-container">
+                <img id="qr-code-image" src="/placeholder.svg" alt="Código QR">
+            </div>
+            <div class="qr-instructions">
+                <p><i class="fas fa-info-circle"></i> Este código QR es único para el empleado</p>
+                <p>Úsalo en el sistema de control de asistencia</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function verQR(empleadoId) {
+    fetch(`/empleado/qr/${empleadoId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('qr-employee-name').textContent = data.nombre;
+                document.getElementById('qr-code-image').src = `data:image/png;base64,${data.qr_image}`;
+                openModal('qr-modal');
+            } else {
+                showNotification('Error al cargar el código QR', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error de conexión', 'error');
+        });
+}
+
+function editarEmpleado(empleadoId) {
+    // Implementar edición de empleado
+    showNotification('Función de edición en desarrollo', 'info');
+}
+
+// Validación de CURP en tiempo real
+document.getElementById('curp').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión - Sistema de Asistencia{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-logo">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h1>Sistema de Control de Asistencia</h1>
+            <h2>H. Ayuntamiento de El Carmen Tequexquitla</h2>
+            <p>Acceso exclusivo para administradores</p>
+        </div>
+        
+        <form method="POST" class="login-form">
+            <div class="form-group">
+                <label for="usuario">
+                    <i class="fas fa-user"></i>
+                    Usuario
+                </label>
+                <input type="text" id="usuario" name="usuario" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock"></i>
+                    Contraseña
+                </label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <button type="submit" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i>
+                Iniciar Sesión
+            </button>
+        </form>
+        
+        <div class="login-footer">
+            <p><i class="fas fa-info-circle"></i> Sistema desarrollado para el control interno de asistencia</p>
+            <small>© 2025 H. Ayuntamiento de El Carmen Tequexquitla</small>
+        </div>
+    </div>
+</div>
+{% endblock %}

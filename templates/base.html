@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Control de Asistencia - H. Ayuntamiento El Carmen Tequexquitla{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        {% if session.admin_id %}
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-building"></i>
+                    <h3>H. Ayuntamiento<br><small>El Carmen Tequexquitla</small></h3>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a></li>
+                <li><a href="{{ url_for('lista_empleados') }}" class="{% if request.endpoint == 'lista_empleados' %}active{% endif %}">
+                    <i class="fas fa-users"></i> Personal
+                </a></li>
+                <li><a href="{{ url_for('control_asistencia') }}" class="{% if request.endpoint == 'control_asistencia' %}active{% endif %}">
+                    <i class="fas fa-qrcode"></i> Control QR
+                </a></li>
+                <li><a href="{{ url_for('reportes') }}" class="{% if request.endpoint == 'reportes' %}active{% endif %}">
+                    <i class="fas fa-chart-bar"></i> Reportes
+                </a></li>
+                <li><a href="{{ url_for('logout') }}" class="logout">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                </a></li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <div class="admin-info">
+                    <i class="fas fa-user-shield"></i>
+                    <span>{{ session.admin_nombre }}</span>
+                </div>
+            </div>
+        </nav>
+        {% endif %}
+        
+        <main class="main-content {% if not session.admin_id %}full-width{% endif %}">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message flash-{{ category }}">
+                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                                {{ message }}
+                                <button class="close-flash" onclick="this.parentElement.remove()">×</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

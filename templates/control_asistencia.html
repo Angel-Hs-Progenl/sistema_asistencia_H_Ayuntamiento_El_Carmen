@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Control de Asistencia QR - Sistema de Asistencia{% endblock %}
+
+{% block content %}
+<div class="qr-scanner-container">
+    <div class="scanner-header">
+        <h1><i class="fas fa-qrcode"></i> Control de Asistencia QR</h1>
+        <div class="scanner-status" id="scanner-status">
+            <i class="fas fa-circle"></i> Listo para escanear
+        </div>
+    </div>
+    
+    <div class="scanner-content">
+        <div class="scanner-section">
+            <div class="camera-container">
+                <video id="qr-video" autoplay></video>
+                <div class="scanner-overlay">
+                    <div class="scanner-frame"></div>
+                </div>
+                <div class="scanner-instructions">
+                    <p><i class="fas fa-camera"></i> Coloca el código QR dentro del marco</p>
+                </div>
+            </div>
+            
+            <div class="scanner-controls">
+                <button id="start-scanner" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Iniciar Escáner
+                </button>
+                <button id="stop-scanner" class="btn btn-secondary" style="display: none;">
+                    <i class="fas fa-stop"></i> Detener Escáner
+                </button>
+                
+                <div class="registro-type">
+                    <label>
+                        <input type="radio" name="tipo_registro" value="entrada" checked>
+                        <span class="radio-custom entrada">
+                            <i class="fas fa-sign-in-alt"></i> Entrada
+                        </span>
+                    </label>
+                    <label>
+                        <input type="radio" name="tipo_registro" value="salida">
+                        <span class="radio-custom salida">
+                            <i class="fas fa-sign-out-alt"></i> Salida
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="registro-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-list"></i> Registros del Día</h3>
+                    <span class="registro-count" id="registro-count">0 registros</span>
+                </div>
+                <div class="card-body">
+                    <div id="registros-lista" class="registros-lista">
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-list"></i>
+                            <p>No hay registros de asistencia hoy</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div id="confirmacion-modal" class="modal">
+    <div class="modal-content confirmacion-modal">
+        <div class="modal-header">
+            <h2 id="confirmacion-titulo"></h2>
+        </div>
+        <div class="confirmacion-info">
+            <div class="empleado-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="empleado-datos">
+                <h3 id="confirmacion-nombre"></h3>
+                <p id="confirmacion-tipo"></p>
+                <p id="confirmacion-hora"></p>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('confirmacion-modal')">
+                Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" id="confirmar-registro">
+                Confirmar Registro
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+let video = document.getElementById('qr-video');
+let canvas = document.createElement('canvas');
+let context = canvas.getContext('2d');
+let scanning = false;
+let scanInterval;
+
+const startButton = document.getElementById('start-scanner');
+const stopButton = document.getElementById('stop-scanner');
+const statusElement = document.getElementById('scanner-status');
+
+startButton.addEventListener('click', startScanner);
+stopButton.addEventListener('click', stopScanner);
+
+async function startScanner() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' } 
+        });
+        video.srcObject = stream;
+        video.play();
+        
+        scanning = true;
+        startButton.style.display = 'none';
+        stopButton.style.display = 'inline-block';
+        
+        updateStatus('Escaneando...', 'scanning');
+        
+        scanInterval = setInterval(scanQR, 100);
+    } catch (error) {
+        updateStatus('Error al acceder a la cámara', 'error');
+        console.error('Error:', error);
+    }
+}
+
+function stopScanner() {
+    scanning = false;
+    clearInterval(scanInterval);
+    
+    if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+    }
+    
+    startButton.style.display = 'inline-block';
+    stopButton.style.display = 'none';
+    
+    updateStatus('Listo para escanear', 'ready');
+}
+
+function scanQR() {
+    if (!scanning || video.videoWidth === 0 || video.videoHeight === 0) {
+        return;
+    }
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    
+    if (code) {
+        procesarCodigoQR(code.data);
+    }
+}
+
+function procesarCodigoQR(codigoQR) {
+    stopScanner();
+    
+    const tipoRegistro = document.querySelector('input[name="tipo_registro"]:checked').value;
+    const ahora = new Date();
+    const hora = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    
+    // Mostrar modal de confirmación
+    document.getElementById('confirmacion-titulo').innerHTML = 
+        `<i class="fas fa-${tipoRegistro === 'entrada' ? 'sign-in-alt' : 'sign-out-alt'}"></i> 
+         Confirmar ${tipoRegistro.charAt(0).toUpperCase() + tipoRegistro.slice(1)}`;
+    
+    document.getElementById('confirmacion-tipo').textContent = 
+        `Tipo de registro: ${tipoRegistro.charAt(0).toUpperCase() + tipoRegistro.slice(1)}`;
+    
+    document.getElementById('confirmacion-hora').textContent = `Hora: ${hora}`;
+    
+    // Guardar datos para confirmación
+    document.getElementById('confirmar-registro').onclick = () => {
+        registrarAsistencia(codigoQR, tipoRegistro);
+    };
+    
+    openModal('confirmacion-modal');
+}
+
+function registrarAsistencia(codigoQR, tipoRegistro) {
+    fetch('/registrar_asistencia', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            codigo_qr: codigoQR,
+            tipo: tipoRegistro
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        closeModal('confirmacion-modal');
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            agregarRegistroALista(data.message, tipoRegistro);
+            updateStatus('Registro exitoso', 'success');
+        } else {
+            showNotification(data.message, 'error');
+            updateStatus('Error en el registro', 'error');
+        }
+        
+        // Volver a estado listo después de 3 segundos
+        setTimeout(() => {
+            updateStatus('Listo para escanear', 'ready');
+        }, 3000);
+    })
+    .catch(error => {
+        closeModal('confirmacion-modal');
+        showNotification('Error de conexión', 'error');
+        updateStatus('Error de conexión', 'error');
+    });
+}
+
+function agregarRegistroALista(mensaje, tipo) {
+    const lista = document.getElementById('registros-lista');
+    const emptyState = lista.querySelector('.empty-state');
+    
+    if (emptyState) {
+        emptyState.remove();
+    }
+    
+    const registro = document.createElement('div');
+    registro.className = `registro-item ${tipo}`;
+    registro.innerHTML = `
+        <div class="registro-icon">
+            <i class="fas fa-${tipo === 'entrada' ? 'sign-in-alt' : 'sign-out-alt'}"></i>
+        </div>
+        <div class="registro-info">
+            <p>${mensaje}</p>
+            <small>${new Date().toLocaleString('es-ES')}</small>
+        </div>
+    `;
+    
+    lista.insertBefore(registro, lista.firstChild);
+    
+    // Actualizar contador
+    const count = lista.children.length;
+    document.getElementById('registro-count').textContent = `${count} registro${count !== 1 ? 's' : ''}`;
+}
+
+function updateStatus(mensaje, tipo) {
+    statusElement.innerHTML = `<i class="fas fa-circle"></i> ${mensaje}`;
+    statusElement.className = `scanner-status ${tipo}`;
+}
+
+// Cargar registros del día al iniciar
+window.addEventListener('load', cargarRegistrosDelDia);
+
+function cargarRegistrosDelDia() {
+    // Esta función se puede implementar para cargar los registros existentes del día
+    // Por ahora solo actualizamos el estado
+    updateStatus('Listo para escanear', 'ready');
+}
+</script>
+{% endblock %}

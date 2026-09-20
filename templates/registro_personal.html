@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Registro de Personal - Sistema de Asistencia{% endblock %}
+
+{% block content %}
+<div class="personal-management">
+    <div class="page-header">
+        <h1><i class="fas fa-users"></i> Gestión de Personal</h1>
+        <button class="btn btn-primary" onclick="openModal('nuevo-empleado-modal')">
+            <i class="fas fa-user-plus"></i> Nuevo Empleado
+        </button>
+    </div>
+    
+    <div class="employees-grid">
+        {% for empleado in empleados %}
+        <div class="employee-card {% if not empleado[7] %}inactive{% endif %}">
+            <div class="employee-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="employee-info">
+                <h3>{{ empleado[1] }} {{ empleado[2] }}</h3>
+                <p class="employee-position">{{ empleado[4] }}</p>
+                <p class="employee-department">{{ empleado[5] }}</p>
+                <p class="employee-curp">CURP: {{ empleado[3] }}</p>
+                <p class="employee-date">Registro: {{ empleado[6] }}</p>
+            </div>
+            <div class="employee-actions">
+                <button class="btn btn-sm btn-info" onclick="verQR('{{ empleado[0] }}')">
+                    <i class="fas fa-qrcode"></i> Ver QR
+                </button>
+                <button class="btn btn-sm btn-success" onclick="descargarQR('{{ empleado[0] }}')">
+                    <i class="fas fa-download"></i> Descargar QR
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="editarEmpleado('{{ empleado[0] }}')">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+            </div>
+            {% if not empleado[7] %}
+            <div class="inactive-badge">
+                <i class="fas fa-ban"></i> Inactivo
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Nuevo Empleado -->
+<div id="nuevo-empleado-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-user-plus"></i> Registrar Nuevo Empleado</h2>
+            <button class="close-modal" onclick="closeModal('nuevo-empleado-modal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('nuevo_empleado') }}" class="employee-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nombre">
+                        <i class="fas fa-user"></i> Nombre(s)
+                    </label>
+                    <input type="text" id="nombre" name="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="apellidos">
+                        <i class="fas fa-user"></i> Apellidos
+                    </label>
+                    <input type="text" id="apellidos" name="apellidos" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="curp">
+                    <i class="fas fa-id-card"></i> CURP
+                </label>
+                <input type="text" id="curp" name="curp" maxlength="18" minlength="18" required 
+                       placeholder="Ejemplo: HEAA850101HTLRNN01"
+                       title="Ingresa el CURP de 18 caracteres">
+                <small class="form-help">Formato: 4 letras + 6 números + H/M + 5 letras + 2 números</small>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="puesto">
+                        <i class="fas fa-briefcase"></i> Puesto
+                    </label>
+                    <input type="text" id="puesto" name="puesto" required>
+                </div>
+                <div class="form-group">
+                    <label for="departamento">
+                        <i class="fas fa-building"></i> Departamento
+                    </label>
+                    <select id="departamento" name="departamento" required>
+                        <option value="">Seleccionar departamento</option>
+                        <option value="Presidencia">Presidencia</option>
+                        <option value="Secretario">Secretario</option>
+                        <option value="Sindicaturia">Sindicaturia</option>
+                        <option value="Tesoreria">Tesoreria</option>
+                        <option value="Regidores">Regidores</option>
+                        <option value="Obras Publicas">Obras Publicas</option>
+                        <option value="Agua Potable">Agua Potable</option>
+                        <option value="Coordinacion de Agua Potable">Coordinacion de Agua Potable</option>
+                        <option value="Proteccion Civil">Proteccion Civil</option>
+                        <option value="Servicios Municipales">Servicios Municipales</option>
+                        <option value="Ministerio Publico">Ministerio Publico</option>
+                        <option value="Transparencia">Transparencia</option>
+                        <option value="Contraloria">Contraloria</option>
+                        <option value="Comunicacion Social">Comunicacion Social</option>
+                        <option value="Desarrollo Rural">Desarrollo Rural</option>
+                        <option value="Desarrollo Social">Desarrollo Social</option>
+                        <option value="Deportes">Deportes</option>
+                        <option value="Cultura">Cultura</option>
+                        <option value="Catastro">Catastro</option>
+                        <option value="Registro Civil">Registro Civil</option>
+                        <option value="DIF">DIF</option>
+                        <option value="Mazatepec">Mazatepec</option>
+                        <option value="Barrio de Guadalupe">Barrio de Guadalupe</option>
+                        <option value="Temalacayucan">Temalacayucan</option>
+                        <option value="Vicente Guerrero">Vicente Guerrero</option>
+                        <option value="Soledad">Soledad</option>
+                        <option value="Juridico">Juridico</option>
+                        <option value="Oficilia Mayor">Oficilia Mayor</option>
+                        <option value="Bodega">Bodega</option>
+                        <option value="Direccion de Seguridad Publica Municipal">Direccion de Seguridad Publica Municipal</option>
+                        <option value="Seguridad Publica">Seguridad Publica</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('nuevo-empleado-modal')">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Registrar Empleado
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Ver QR -->
+<div id="qr-modal" class="modal">
+    <div class="modal-content qr-modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-qrcode"></i> Código QR del Empleado</h2>
+            <button class="close-modal" onclick="closeModal('qr-modal')">&times;</button>
+        </div>
+        <div class="qr-display">
+            <div class="qr-employee-info">
+                <h3 id="qr-employee-name"></h3>
+            </div>
+            <div class="qr-code-container">
+                <img id="qr-code-image" src="/placeholder.svg" alt="Código QR">
+            </div>
+            <div class="qr-instructions">
+                <p><i class="fas fa-info-circle"></i> Este código QR es único para el empleado</p>
+                <p>Úsalo en el sistema de control de asistencia</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Empleado -->
+<div id="editar-empleado-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-user-edit"></i> Editar Empleado</h2>
+            <button class="close-modal" onclick="closeModal('editar-empleado-modal')">&times;</button>
+        </div>
+        <form id="form-editar-empleado" class="employee-form">
+            <input type="hidden" id="edit-empleado-id" name="empleado_id">
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-nombre">
+                        <i class="fas fa-user"></i> Nombre(s)
+                    </label>
+                    <input type="text" id="edit-nombre" name="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-apellidos">
+                        <i class="fas fa-user"></i> Apellidos
+                    </label>
+                    <input type="text" id="edit-apellidos" name="apellidos" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit-curp">
+                    <i class="fas fa-id-card"></i> CURP
+                </label>
+                <input type="text" id="edit-curp" name="curp" readonly 
+                       style="background-color: #f8f9fa; cursor: not-allowed;">
+                <small class="form-help">El CURP no se puede modificar</small>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-puesto">
+                        <i class="fas fa-briefcase"></i> Puesto
+                    </label>
+                    <input type="text" id="edit-puesto" name="puesto" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-departamento">
+                        <i class="fas fa-building"></i> Departamento
+                    </label>
+                    <select id="edit-departamento" name="departamento" required>
+                        <option value="">Seleccionar departamento</option>
+                        <option value="Presidencia">Presidencia</option>
+                        <option value="Secretario">Secretario</option>
+                        <option value="Sindicaturia">Sindicaturia</option>
+                        <option value="Tesoreria">Tesoreria</option>
+                        <option value="Regidores">Regidores</option>
+                        <option value="Obras Publicas">Obras Publicas</option>
+                        <option value="Agua Potable">Agua Potable</option>
+                        <option value="Coordinacion de Agua Potable">Coordinacion de Agua Potable</option>
+                        <option value="Proteccion Civil">Proteccion Civil</option>
+                        <option value="Servicios Municipales">Servicios Municipales</option>
+                        <option value="Ministerio Publico">Ministerio Publico</option>
+                        <option value="Transparencia">Transparencia</option>
+                        <option value="Contraloria">Contraloria</option>
+                        <option value="Comunicacion Social">Comunicacion Social</option>
+                        <option value="Desarrollo Rural">Desarrollo Rural</option>
+                        <option value="Desarrollo Social">Desarrollo Social</option>
+                        <option value="Deportes">Deportes</option>
+                        <option value="Cultura">Cultura</option>
+                        <option value="Catastro">Catastro</option>
+                        <option value="Registro Civil">Registro Civil</option>
+                        <option value="DIF">DIF</option>
+                        <option value="Mazatepec">Mazatepec</option>
+                        <option value="Barrio de Guadalupe">Barrio de Guadalupe</option>
+                        <option value="Temalacayucan">Temalacayucan</option>
+                        <option value="Vicente Guerrero">Vicente Guerrero</option>
+                        <option value="Soledad">Soledad</option>
+                        <option value="Juridico">Juridico</option>
+                        <option value="Oficilia Mayor">Oficilia Mayor</option>
+                        <option value="Bodega">Bodega</option>
+                        <option value="Direccion de Seguridad Publica Municipal">Direccion de Seguridad Publica Municipal</option>
+                        <option value="Seguridad Publica">Seguridad Publica</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="edit-activo" name="activo">
+                    <span class="checkbox-custom"></span>
+                    <i class="fas fa-user-check"></i> Empleado Activo
+                </label>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editar-empleado-modal')">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Actualizar Empleado
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function verQR(empleadoId) {
+    fetch(`/empleado/qr/${empleadoId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('qr-employee-name').textContent = data.nombre;
+                document.getElementById('qr-code-image').src = `data:image/png;base64,${data.qr_image}`;
+                openModal('qr-modal');
+            } else {
+                showNotification('Error al cargar el código QR', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error de conexión', 'error');
+        });
+}
+
+function descargarQR(empleadoId) {
+    window.open(`/empleado/qr/${empleadoId}/download`, '_blank');
+}
+
+function editarEmpleado(empleadoId) {
+    fetch(`/empleado/editar/${empleadoId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const empleado = data.empleado;
+                
+                document.getElementById('edit-empleado-id').value = empleado.id;
+                document.getElementById('edit-nombre').value = empleado.nombre;
+                document.getElementById('edit-apellidos').value = empleado.apellidos;
+                document.getElementById('edit-curp').value = empleado.curp;
+                document.getElementById('edit-puesto').value = empleado.puesto;
+                document.getElementById('edit-departamento').value = empleado.departamento;
+                document.getElementById('edit-activo').checked = empleado.activo === 1;
+                
+                openModal('editar-empleado-modal');
+            } else {
+                showNotification('Error al cargar datos del empleado', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error de conexión', 'error');
+        });
+}
+
+// Manejar envío del formulario de edición
+document.getElementById('form-editar-empleado').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const empleadoId = formData.get('empleado_id');
+    
+    fetch(`/empleado/editar/${empleadoId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        }
+    })
+    .catch(error => {
+        showNotification('Error al actualizar empleado', 'error');
+    });
+});
+</script>
+{% endblock %}
